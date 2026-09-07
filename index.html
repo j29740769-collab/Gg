@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0f1115;
+    --card:#171a20;
+    --card-2:#1d2129;
+    --line:#282c34;
+    --text:#e6e8eb;
+    --muted:#8b909c;
+    --cyan:#45d6b8;
+    --amber:#f2a93c;
+    --red:#f0575f;
+    --blue:#5b8def;
+    --radius:10px;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter', sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:60px;
+  }
+  code, .mono{ font-family:'JetBrains Mono', monospace; }
+  a{ color:inherit; }
+
+  .wrap{ max-width:640px; margin:0 auto; padding:18px 14px 0; }
+
+  /* ---- header ---- */
+  header{ padding:6px 0 18px; display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  header h1{ font-size:20px; margin:0 0 2px; font-weight:700; }
+  header p{ margin:0; font-size:13px; color:var(--muted); }
+  .logout-link{ font-size:12.5px; color:var(--muted); text-decoration:none; white-space:nowrap; margin-top:2px; }
+  .logout-link:hover{ color:var(--text); }
+  .credit{ text-align:center; margin-bottom:10px; }
+  .credit a{
+    display:inline-flex; align-items:center; gap:6px; text-decoration:none;
+    color:var(--muted); font-size:11.5px;
+  }
+  .credit a:hover{ color:var(--text); }
+  .counts{ display:flex; gap:14px; margin-top:14px; flex-wrap:wrap; }
+  .count{
+    display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--muted);
+    background:var(--card); border:1px solid var(--line); border-radius:999px;
+    padding:5px 12px;
+  }
+  .count b{ color:var(--text); font-family:'JetBrains Mono',monospace; }
+  .dot{ width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  .dot.cyan{ background:var(--cyan); }
+  .dot.grey{ background:#4a505c; }
+  .dot.red{ background:var(--red); }
+  .dot.amber{ background:var(--amber); }
+
+  /* ---- upload ---- */
+  .upload{
+    background:var(--card); border:1px dashed var(--line); border-radius:var(--radius);
+    padding:18px; text-align:center; margin-bottom:22px; cursor:pointer;
+    transition:border-color .15s, background .15s;
+  }
+  .upload.drag{ border-color:var(--blue); background:var(--card-2); }
+  .upload .icon{ font-size:20px; margin-bottom:6px; }
+  .upload .t1{ font-size:14px; font-weight:600; }
+  .upload .t2{ font-size:12px; color:var(--muted); margin-top:3px; }
+  input[type=file]{ display:none; }
+
+  /* ---- buttons ---- */
+  .btn{
+    border:none; border-radius:8px; padding:9px 14px; font-size:13px; font-weight:600;
+    cursor:pointer; font-family:'Inter',sans-serif; transition:filter .1s, background .1s;
+  }
+  .btn:disabled{ opacity:.4; cursor:not-allowed; }
+  .btn-block{ width:100%; }
+  .btn-primary{ background:var(--blue); color:#fff; }
+  .btn-primary:hover:not(:disabled){ filter:brightness(1.1); }
+  .btn-cyan{ background:rgba(69,214,184,.14); color:var(--cyan); }
+  .btn-cyan:hover:not(:disabled){ background:rgba(69,214,184,.22); }
+  .btn-amber{ background:rgba(242,169,60,.14); color:var(--amber); }
+  .btn-amber:hover:not(:disabled){ background:rgba(242,169,60,.22); }
+  .btn-ghost{ background:var(--card-2); color:var(--text); }
+  .btn-ghost:hover:not(:disabled){ background:#242a33; }
+  .btn-red{ background:transparent; color:var(--red); border:1px solid rgba(240,87,95,.35); }
+  .btn-red:hover:not(:disabled){ background:rgba(240,87,95,.1); }
+  .btn-sm{ padding:7px 11px; font-size:12.5px; }
+  .btn-xs{ padding:4px 9px; font-size:11.5px; border-radius:6px; }
+  .btn-row{ display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+
+  /* ---- cards ---- */
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px; margin-bottom:14px;
+  }
+  .card-top{ display:flex; align-items:flex-start; gap:10px; }
+  .card-top .dot{ margin-top:6px; width:9px; height:9px; }
+  .dot.running{ background:var(--cyan); box-shadow:0 0 6px var(--cyan); }
+  .dot.stopped{ background:#4a505c; }
+  .dot.starting, .dot.installing{ background:var(--amber); animation:pulse 1s infinite; }
+  .dot.crashed{ background:var(--red); box-shadow:0 0 6px var(--red); }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.3;} }
+
+  .card-title{ flex:1; min-width:0; }
+  .card-title .name{ font-size:15px; font-weight:700; word-break:break-word; }
+  .card-title .status-line{ font-size:12.5px; color:var(--muted); margin-top:2px; }
+  .status-line.running{ color:var(--cyan); }
+  .status-line.crashed{ color:var(--red); }
+  .status-line.starting, .status-line.installing{ color:var(--amber); }
+
+  .url-chip{
+    display:flex; align-items:center; gap:8px; margin-top:10px;
+    background:var(--card-2); border:1px solid var(--line);
+    border-radius:8px; padding:8px 10px;
+  }
+  .url-chip span{
+    font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--blue);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;
+  }
+  .icon-btn{ background:none; border:none; color:var(--muted); cursor:pointer; padding:2px; display:flex; }
+  .icon-btn:hover{ color:var(--text); }
+
+  /* ---- live log preview (always visible) ---- */
+  .log-preview{
+    margin-top:12px; background:#0a0c0f; border:1px solid var(--line); border-radius:8px;
+    padding:9px 11px; font-family:'JetBrains Mono',monospace; font-size:11.5px;
+    color:#9fb0bf; line-height:1.6; max-height:74px; overflow:hidden; position:relative;
+  }
+  .log-preview.empty{ color:#4a505c; }
+  .log-preview .fade{
+    position:absolute; bottom:0; left:0; right:0; height:22px;
+    background:linear-gradient(transparent, #0a0c0f);
+  }
+
+  .details{ display:none; margin-top:12px; border-top:1px solid var(--line); padding-top:12px; }
+  .details.open{ display:block; }
+
+  .section-label{ font-size:11px; color:var(--muted); letter-spacing:.3px; margin-bottom:8px; }
+
+  .file-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:7px 10px; background:var(--card-2); border-radius:7px; margin-bottom:6px;
+    font-family:'JetBrains Mono',monospace; font-size:12px;
+  }
+  .file-row .fname{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .file-row .entry-tag{
+    font-family:'Inter',sans-serif; font-size:10px; color:var(--blue); margin-left:6px;
+  }
+
+  textarea.reqs{
+    width:100%; min-height:64px; background:var(--card-2); border:1px solid var(--line);
+    border-radius:8px; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:12px;
+    padding:9px; resize:vertical;
+  }
+
+  .full-log{
+    margin-top:8px; background:#0a0c0f; border:1px solid var(--line); border-radius:8px;
+    padding:10px 11px; font-family:'JetBrains Mono',monospace; font-size:11.5px;
+    color:#9fb0bf; max-height:220px; overflow-y:auto; white-space:pre-wrap; line-height:1.6;
+  }
+
+  /* ---- access control panel ---- */
+  .lock-toggle{ display:flex; gap:8px; margin-bottom:10px; }
+  .lock-opt{
+    flex:1; text-align:center; padding:8px; border-radius:7px; font-size:12.5px; font-weight:600;
+    background:var(--card-2); border:1px solid var(--line); cursor:pointer; color:var(--muted);
+  }
+  .lock-opt.active-public{ background:rgba(69,214,184,.14); color:var(--cyan); border-color:rgba(69,214,184,.35); }
+  .lock-opt.active-protected{ background:rgba(242,169,60,.14); color:var(--amber); border-color:rgba(242,169,60,.35); }
+  input[type=text].pw-input, input[type=password].pw-input{
+    width:100%; background:var(--card-2); border:1px solid var(--line); border-radius:8px;
+    color:var(--text); font-family:'JetBrains Mono',monospace; font-size:12.5px;
+    padding:9px 10px; margin-bottom:8px;
+  }
+  .lock-hint{ font-size:11.5px; color:var(--muted-2, var(--muted)); margin-top:2px; }
+
+  .empty-state{ text-align:center; padding:50px 20px; color:var(--muted); font-size:13.5px; }
+
+  /* ---- toast ---- */
+  .toast{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(8px);
+    background:var(--card-2); border:1px solid var(--line); color:var(--text);
+    padding:10px 16px; border-radius:9px; font-size:13px; opacity:0;
+    transition:.25s; pointer-events:none; display:flex; align-items:center; gap:8px;
+    box-shadow:0 8px 20px rgba(0,0,0,.4); max-width:90vw;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* ---- confirm modal ---- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(6,8,11,.7);
+    display:none; align-items:center; justify-content:center; z-index:50; padding:20px;
+  }
+  .overlay.show{ display:flex; }
+  .modal{
+    background:var(--card-2); border:1px solid var(--line); border-radius:var(--radius);
+    padding:20px; width:320px; max-width:100%;
+  }
+  .modal h3{ margin:0 0 8px; font-size:15px; }
+  .modal p{ margin:0 0 16px; font-size:13px; color:var(--muted); line-height:1.5; }
+  .modal-actions{ display:flex; justify-content:flex-end; gap:8px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="credit">
+    <a href="https://instagram.com/mehu.madhav" target="_blank" rel="noopener">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.5" y2="6.5"/></svg>
+      Made by Mehu.madhav
+    </a>
+  </div>
+  <header>
+    <div>
+      <h1>API Manager</h1>
+      <p>Upload a Python API, run it, get a URL.</p>
+    </div>
+    <a class="logout-link" href="/logout">Sign out</a>
+  </header>
+
+  <div class="counts" style="margin-bottom:16px;">
+    <div class="count"><span class="dot cyan"></span><b id="cRunning">0</b>&nbsp;running</div>
+    <div class="count"><span class="dot grey"></span><b id="cStopped">0</b>&nbsp;stopped</div>
+    <div class="count"><span class="dot red"></span><b id="cCrashed">0</b>&nbsp;crashed</div>
+  </div>
+
+  <label class="upload" id="dropzone" for="fileInput">
+    <div class="icon">📤</div>
+    <div class="t1" id="dzText">Tap to upload a .py file or a .zip project</div>
+    <div class="t2">or drag it here</div>
+  </label>
+  <input type="file" id="fileInput" accept=".py,.zip">
+
+  <div id="list"></div>
+</div>
+
+<div class="toast" id="toast"><span class="dot" id="toastDot" style="background:var(--cyan)"></span><span id="toastMsg"></span></div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3>Delete API</h3>
+    <p id="modalBody">This will stop and permanently remove it.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" id="modalCancel">Cancel</button>
+      <button class="btn btn-red btn-sm" id="modalConfirm">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const fileInput  = document.getElementById('fileInput');
+const dropzone   = document.getElementById('dropzone');
+const dzText     = document.getElementById('dzText');
+const listEl     = document.getElementById('list');
+const toastEl    = document.getElementById('toast');
+const toastMsg   = document.getElementById('toastMsg');
+const toastDot   = document.getElementById('toastDot');
+const overlay    = document.getElementById('overlay');
+const modalBody  = document.getElementById('modalBody');
+const modalConfirm = document.getElementById('modalConfirm');
+const modalCancel  = document.getElementById('modalCancel');
+
+let apps = [];
+let openDetails = new Set();
+let pendingDelete = null;
+let reqsCache = {}; // name -> current textarea content, so polling never wipes an in-progress edit
+
+// ---------- toast ----------
+function toast(msg, color='cyan'){
+  toastMsg.textContent = msg;
+  toastDot.style.background = `var(--${color})`;
+  toastEl.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => toastEl.classList.remove('show'), 2400);
+}
+
+// ---------- new API upload ----------
+fileInput.addEventListener('change', () => {
+  if (fileInput.files.length) uploadNew(fileInput.files[0]);
+});
+['dragover','dragenter'].forEach(evt =>
+  dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.add('drag'); })
+);
+['dragleave','drop'].forEach(evt =>
+  dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.remove('drag'); })
+);
+dropzone.addEventListener('drop', e => {
+  const f = e.dataTransfer.files[0];
+  if (f && (f.name.endsWith('.py') || f.name.endsWith('.zip'))) uploadNew(f);
+});
+
+// central fetch wrapper: bounce to /login if the session expired
+async function apiFetch(url, opts){
+  const res = await fetch(url, opts);
+  if (res.status === 401) { window.location.href = '/login'; throw new Error('session expired'); }
+  return res;
+}
+
+async function uploadNew(file){
+  const isZip = file.name.toLowerCase().endsWith('.zip');
+  dzText.textContent = isZip ? 'Extracting project…' : 'Uploading…';
+  const fd = new FormData();
+  fd.append('file', file);
+  try {
+    const res = await apiFetch(isZip ? '/api/upload/zip' : '/api/upload', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    toast(isZip ? `Extracted ${data.name} (entry: ${data.entry})` : `Uploaded ${data.name}`, 'cyan');
+    fileInput.value = '';
+    refresh();
+  } catch (e) {
+    toast(e.message, 'red');
+  } finally {
+    dzText.textContent = 'Tap to upload a .py file or a .zip project';
+  }
+}
+
+async function uploadExtraFile(name, file, relpath){
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('relpath', relpath || file.webkitRelativePath || file.name);
+  try {
+    const res = await apiFetch(`/api/upload/${name}/file`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    return data.file;
+  } catch (e) {
+    toast(e.message, 'red');
+    return null;
+  }
+}
+
+async function uploadFileList(name, fileList){
+  const files = Array.from(fileList);
+  if (!files.length) return;
+  let ok = 0;
+  for (const f of files) {
+    const result = await uploadExtraFile(name, f);
+    if (result) ok++;
+  }
+  toast(`Added ${ok} file(s) to ${name}`, 'cyan');
+  refresh();
+}
+
+async function setEntry(name){
+  const sel = document.getElementById(`entry-${name}`);
+  if (!sel || !sel.value) return;
+  try {
+    const res = await apiFetch(`/api/entry/${name}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entry: sel.value }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not set entry point');
+    toast(`Entry point set to ${data.entry}`, 'cyan');
+    refresh();
+  } catch (e) {
+    toast(e.message, 'red');
+  }
+}
+
+async function deleteFile(name, filename){
+  try {
+    const res = await apiFetch(`/api/file/${name}/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Delete failed');
+    toast(`Removed ${filename}`, 'red');
+    refresh();
+  } catch (e) {
+    toast(e.message, 'red');
+  }
+}
+
+async function saveRequirements(name){
+  const ta = document.getElementById(`reqs-${name}`);
+  try {
+    const res = await apiFetch(`/api/requirements/${name}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: ta.value }),
+    });
+    if (!res.ok) throw new Error('Could not save requirements');
+    toast('Saved — will install on next start', 'cyan');
+    refresh();
+  } catch (e) {
+    toast(e.message, 'red');
+  }
+}
+
+// ---------- per-API access password ----------
+let pwCache = {}; // name -> password field content, to survive polling like reqsCache does
+
+function setLockChoice(name, protectedFlag){
+  pwCache[name] = pwCache[name] || {};
+  pwCache[name].protected = protectedFlag;
+  render();
+}
+
+async function savePassword(name){
+  const state = pwCache[name] || {};
+  const protectedFlag = !!state.protected;
+  const input = document.getElementById(`pwfield-${name}`);
+  const password = input ? input.value.trim() : '';
+  if (protectedFlag && !password && !state.hadExisting) {
+    toast('Enter a password to protect this API', 'red');
+    return;
+  }
+  try {
+    const res = await apiFetch(`/api/password/${name}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ protected: protectedFlag, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not save');
+    toast(protectedFlag ? 'API is now password protected' : 'API is now public', 'cyan');
+    if (pwCache[name]) { pwCache[name].hadExisting = protectedFlag; }
+    refresh();
+  } catch (e) {
+    toast(e.message, 'red');
+  }
+}
+
+// ---------- confirm modal ----------
+function askDelete(name){
+  pendingDelete = name;
+  modalBody.innerHTML = `This will stop and permanently remove <code>${name}</code> and all its files.`;
+  overlay.classList.add('show');
+}
+modalCancel.addEventListener('click', () => { overlay.classList.remove('show'); pendingDelete = null; });
+overlay.addEventListener('click', e => { if (e.target === overlay) { overlay.classList.remove('show'); pendingDelete = null; } });
+modalConfirm.addEventListener('click', async () => {
+  if (!pendingDelete) return;
+  overlay.classList.remove('show');
+  await action(pendingDelete, 'delete');
+  pendingDelete = null;
+});
+
+// ---------- start / stop / restart / delete ----------
+async function action(name, act){
+  try {
+    const res = await apiFetch(`/api/${act}/${name}`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `${act} failed`);
+    const verb = { start:'Starting', stop:'Stopped', restart:'Restarting', delete:'Deleted' }[act] || act;
+    toast(`${verb} ${name}`, act === 'delete' || act === 'stop' ? 'amber' : 'cyan');
+    if (act === 'start' || act === 'restart') openDetails.add(name);
+    refresh();
+  } catch (e) {
+    toast(e.message, 'red');
+  }
+}
+
+function toggleDetails(name){
+  if (openDetails.has(name)) openDetails.delete(name); else openDetails.add(name);
+  render();
+}
+
+// ---------- formatting ----------
+function fmtUptime(sec){
+  if (sec == null) return null;
+  sec = Math.floor(sec);
+  const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
+  if (h) return `${h}h ${m}m`;
+  if (m) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+function fmtSize(b){
+  if (b == null || b === 0) return '0 B';
+  if (b < 1024) return b + ' B';
+  if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+  return (b/(1024*1024)).toFixed(2) + ' MB';
+}
+function statusText(s){
+  return { running:'Running', starting:'Starting…', installing:'Installing dependencies…',
+           stopped:'Stopped', crashed:'Crashed — see output below' }[s] || s;
+}
+const svgCopy = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
+const svgOpen = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6M10 14L21 3"/></svg>';
+
+// ---------- render ----------
+function render(){
+  if (!apps.length){
+    listEl.innerHTML = `<div class="empty-state">No APIs yet — upload a .py file above to get started.</div>`;
+    updateCounts();
+    return;
+  }
+
+  listEl.innerHTML = apps.map(a => {
+    const fullUrl = a.url ? (window.location.origin + a.url) : null;
+    const isBusy = a.status === 'starting' || a.status === 'installing';
+    const isRunning = a.status === 'running' || isBusy;
+    const isOpen = openDetails.has(a.name);
+    const uptime = fmtUptime(a.uptime);
+    const tail = (a.__logs || []).slice(-4).join('\n');
+
+    const reqs = a.total_requests || 0;
+    const rps = a.rps || 0;
+    const storage = fmtSize(a.storage_bytes || 0);
+    const avgLat = a.avg_latency_ms || 0;
+    const errs = a.error_count || 0;
+
+    return `
+    <div class="card">
+      <div class="card-top">
+        <span class="dot ${a.status}"></span>
+        <div class="card-title">
+          <div class="name">${a.name}</div>
+          <div class="status-line ${a.status}">${statusText(a.status)}${uptime ? ' · up ' + uptime : ''}${a.protected ? ' · 🔒 protected' : ''}</div>
+          ${fullUrl ? `
+            <div class="url-chip">
+              <span title="${fullUrl}">${fullUrl}</span>
+              <button class="icon-btn" title="Copy URL" onclick="navigator.clipboard.writeText('${fullUrl}'); toast('URL copied','cyan')">${svgCopy}</button>
+              <a class="icon-btn" title="Open" href="${a.url}" target="_blank">${svgOpen}</a>
+            </div>` : ``}
+        </div>
+      </div>
+
+      <div class="counts" style="margin:12px 0 0; gap:8px;">
+        <div class="count" title="Total requests received"><span class="dot cyan"></span><b>${reqs}</b>&nbsp;reqs</div>
+        <div class="count" title="Current requests per second (last 60s)"><span class="dot amber"></span><b>${rps}</b>&nbsp;rps</div>
+        <div class="count" title="Average response latency"><span class="dot grey"></span><b>${avgLat}</b>&nbsp;ms</div>
+        <div class="count" title="Storage used by this API folder"><span class="dot cyan"></span><b>${storage}</b></div>
+        ${errs ? `<div class="count" title="Error responses"><span class="dot red"></span><b>${errs}</b>&nbsp;err</div>` : ''}
+      </div>
+
+      <div class="log-preview ${tail ? '' : 'empty'}" id="preview-${a.name}">${tail ? escapeHtml(tail) : 'no output yet'}${tail ? '<div class="fade"></div>' : ''}</div>
+
+      <div class="btn-row">
+        ${isRunning
+          ? `<button class="btn btn-amber btn-sm" ${isBusy ? 'disabled' : ''} onclick="action('${a.name}','stop')">Stop</button>
+             <button class="btn btn-ghost btn-sm" onclick="action('${a.name}','restart')">Restart</button>`
+          : `<button class="btn btn-cyan btn-sm" onclick="action('${a.name}','start')">Start</button>`}
+        <button class="btn btn-ghost btn-sm" onclick="toggleDetails('${a.name}')">${isOpen ? 'Hide details' : 'Details'}</button>
+        <button class="btn btn-red btn-sm" onclick="askDelete('${a.name}')">Delete</button>
+      </div>
+
+      <div class="details ${isOpen ? 'open' : ''}">
+        <div class="section-label">ENTRY POINT</div>
+        <div class="btn-row" style="margin-top:0; margin-bottom:10px;">
+          <select class="reqs" style="min-height:0; padding:9px; flex:1;" id="entry-${a.name}">
+            ${a.files.filter(f => f.is_py).map(f => `<option value="${f.name}" ${f.name === a.entry ? 'selected' : ''}>${f.name}</option>`).join('')}
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="setEntry('${a.name}')">Set as entry</button>
+        </div>
+        <div class="lock-hint" style="margin-bottom:14px;">This is the file that actually runs — useful when a project has several .py files (main.py, app1.py, app2.py...).</div>
+
+        <div class="section-label">FILES</div>
+        ${a.files.map(f => `
+          <div class="file-row">
+            <span class="fname">${f.name}${f.name === a.entry ? '<span class="entry-tag">entry point</span>' : ''}</span>
+            ${f.name === a.entry ? '' : `<button class="btn btn-red btn-xs" onclick="deleteFile('${a.name}','${f.name}')">Remove</button>`}
+          </div>`).join('')}
+        <div class="btn-row" style="margin-top:8px;">
+          <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+            + Add file(s)
+            <input type="file" multiple style="display:none" onchange="uploadFileList('${a.name}', this.files)">
+          </label>
+          <label class="btn btn-ghost btn-sm" style="cursor:pointer;">
+            + Add folder
+            <input type="file" webkitdirectory directory multiple style="display:none" onchange="uploadFileList('${a.name}', this.files)">
+          </label>
+        </div>
+        <div class="lock-hint" style="margin-top:6px;">Any file type is fine — .py, .json, .txt, .html, templates, config, data files, etc.</div>
+
+        <div class="section-label" style="margin-top:16px;">DEPENDENCIES (requirements.txt)</div>
+        <textarea class="reqs" placeholder="e.g.&#10;flask&#10;requests" id="reqs-${a.name}"
+          oninput="reqsCache['${a.name}'] = this.value">${reqsCache[a.name] || ''}</textarea>
+        <div class="btn-row" style="margin-top:8px;">
+          <button class="btn btn-primary btn-sm" onclick="saveRequirements('${a.name}')">Save — installs on next start</button>
+        </div>
+
+        <div class="section-label" style="margin-top:16px;">TRAFFIC & STORAGE</div>
+        <div class="file-row" style="flex-wrap:wrap; gap:6px;">
+          <span>Total requests: <b class="mono">${reqs}</b></span>
+          <span>· Success: <b class="mono">${a.success_count || 0}</b></span>
+          <span>· Errors: <b class="mono" style="color:var(--red)">${errs}</b></span>
+        </div>
+        <div class="file-row" style="flex-wrap:wrap; gap:6px;">
+          <span>Current RPS: <b class="mono">${rps}</b></span>
+          <span>· Avg latency: <b class="mono">${avgLat} ms</b></span>
+          <span>· Storage: <b class="mono">${storage}</b></span>
+        </div>
+        <div class="lock-hint" style="margin-bottom:10px;">
+          Live RPS is from the last 60s. A normal Python API + this proxy can handle 20+ req/sec easily on a small server — the limit is usually your own code or DB.
+        </div>
+
+        <div class="section-label" style="margin-top:16px;">ACCESS</div>
+        ${(() => {
+          const st = pwCache[a.name] || { protected: a.protected, hadExisting: a.protected };
+          pwCache[a.name] = st;
+          return `
+          <div class="lock-toggle">
+            <div class="lock-opt ${!st.protected ? 'active-public' : ''}" onclick="setLockChoice('${a.name}', false)">🌐 Public</div>
+            <div class="lock-opt ${st.protected ? 'active-protected' : ''}" onclick="setLockChoice('${a.name}', true)">🔒 Protected</div>
+          </div>
+          ${st.protected ? `
+            <input type="text" class="pw-input" id="pwfield-${a.name}" placeholder="${a.protected ? 'set a new password (leave blank to keep current)' : 'set a password'}">
+            <div class="lock-hint">Visitors must add <code>?pass=yourpassword</code> to the URL.</div>
+          ` : `<div class="lock-hint">Anyone with the link can use this API.</div>`}
+          <div class="btn-row">
+            <button class="btn btn-primary btn-sm" onclick="savePassword('${a.name}')">Save access setting</button>
+          </div>`;
+        })()}
+
+        <div class="section-label" style="margin-top:16px; display:flex; justify-content:space-between; align-items:center;">
+          <span>FULL OUTPUT</span>
+          <button class="icon-btn" title="Copy all logs" onclick="copyLogs('${a.name}')">${svgCopy} <span style="font-size:11px; margin-left:4px;">Copy</span></button>
+        </div>
+        <div class="full-log" id="fulllog-${a.name}">loading…</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  updateCounts();
+  apps.forEach(a => {
+    if (openDetails.has(a.name)) {
+      loadFullLog(a.name);
+      loadRequirements(a.name);
+    }
+  });
+}
+
+async function loadRequirements(name){
+  if (reqsCache[name] !== undefined) return; // already loaded or being edited — don't clobber it
+  try {
+    const res = await apiFetch(`/api/requirements/${name}`);
+    const data = await res.json();
+    reqsCache[name] = data.content || '';
+    const ta = document.getElementById(`reqs-${name}`);
+    if (ta) ta.value = reqsCache[name];
+  } catch (e) {}
+}
+
+function escapeHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function loadFullLog(name){
+  const el = document.getElementById(`fulllog-${name}`);
+  if (!el) return;
+  try {
+    const res = await apiFetch(`/api/logs/${name}`);
+    const data = await res.json();
+    el.textContent = data.logs && data.logs.length ? data.logs.join('\n') : 'no output yet';
+    el.scrollTop = el.scrollHeight;
+  } catch (e) {}
+}
+
+async function copyLogs(name){
+  try {
+    const res = await apiFetch(`/api/logs/${name}`);
+    const data = await res.json();
+    const text = data.logs && data.logs.length ? data.logs.join('\n') : '(no output yet)';
+    await navigator.clipboard.writeText(text);
+    toast('Logs copied', 'cyan');
+  } catch (e) {
+    toast('Could not copy logs', 'red');
+  }
+}
+
+function updateCounts(){
+  const running = apps.filter(a => ['running','starting','installing'].includes(a.status)).length;
+  const stopped = apps.filter(a => a.status === 'stopped').length;
+  const crashed = apps.filter(a => a.status === 'crashed').length;
+  document.getElementById('cRunning').textContent = running;
+  document.getElementById('cStopped').textContent = stopped;
+  document.getElementById('cCrashed').textContent = crashed;
+}
+
+// ---------- polling ----------
+async function refresh(){
+  try {
+    const res = await apiFetch('/api/list');
+    const fresh = await res.json();
+    // attach last logs for the mini preview without extra round trips for every card
+    await Promise.all(fresh.map(async a => {
+      try {
+        const r = await apiFetch(`/api/logs/${a.name}`);
+        const d = await r.json();
+        a.__logs = d.logs || [];
+      } catch (e) { a.__logs = []; }
+    }));
+    apps = fresh;
+    render();
+  } catch (e) { /* server likely restarting */ }
+}
+
+refresh();
+setInterval(refresh, 2000);
+</script>
+</body>
+</html>
